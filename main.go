@@ -41,11 +41,11 @@ func getSession(w http.ResponseWriter, r *http.Request) *sessions.Session {
 
 func authenticate(w http.ResponseWriter, r *http.Request, email, passwd string) {
    //query := `SELECT id, name, display_name, email FROM users where email=? AND password=?` 
-   row := db.QueryRow(`SELECT id, name, display_name, email FROM users where email=? AND password=?`, email, passwd)
-   //row := db.QueryRow(`SELECT id, name, display_name, email, password, salt FROM users where email=?, email)
+   //row := db.QueryRow(`SELECT id, name, display_name, email FROM users where email=? AND password=?`, email, passwd)
+   row := db.QueryRow(`SELECT id, name, display_name, email, password, salt FROM users where email=?`, email)
    user := User{}
-   err := row.Scan(&user.id, &user.name, &user.display_name, &user.email)
-   //err := row.Scan(&user.id, &user.name, &user.display_name, &user.email, &user.password, &user.salt)
+   //err := row.Scan(&user.id, &user.name, &user.display_name, &user.email)
+   err := row.Scan(&user.id, &user.name, &user.display_name, &user.email, &user.password, &user.salt)
    if err != nil {
       session := getSession(w, r)
       delete(session.Values, "user_id")
@@ -54,13 +54,13 @@ func authenticate(w http.ResponseWriter, r *http.Request, email, passwd string) 
       return 
    }
    // (password string, salt string, hash string) 
-   //if !checkHashFromPassword(passwd, user.salt, user.password) {
-   //   session := getSession(w, r)
-   //   delete(session.Values, "user_id")
-   //   session.Save(r, w)
-   //   render(w, r, http.StatusUnauthorized, "login.html", nil)
-   //   return
-   //}
+   if !checkHashFromPassword(passwd, user.salt, user.password) {
+      session := getSession(w, r)
+      delete(session.Values, "user_id")
+      session.Save(r, w)
+      render(w, r, http.StatusUnauthorized, "login.html", nil)
+      return
+   }
    session := getSession(w, r)
    session.Values["user_id"] = user.id
    session.Save(r, w)
