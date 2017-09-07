@@ -9,6 +9,11 @@ import(
    "os"
    "strconv"
    "fmt"
+   "crypto/rand"
+   "encoding/hex"
+   "encoding/base64"
+   "io"
+   "golang.org/x/crypto/scrypt"
    "database/sql"
    _ "github.com/go-sql-driver/mysql"
 )
@@ -18,6 +23,8 @@ type User struct {
    name string
    display_name string
    email string
+   password string
+   salt string
 }
 
 var store *sessions.CookieStore
@@ -35,18 +42,28 @@ func getSession(w http.ResponseWriter, r *http.Request) *sessions.Session {
 func authenticate(w http.ResponseWriter, r *http.Request, email, passwd string) {
    //query := `SELECT id, name, display_name, email FROM users where email=? AND password=?` 
    row := db.QueryRow(`SELECT id, name, display_name, email FROM users where email=? AND password=?`, email, passwd)
+   //row := db.QueryRow(`SELECT id, name, display_name, email, password, salt FROM users where email=?, email)
    user := User{}
    err := row.Scan(&user.id, &user.name, &user.display_name, &user.email)
+   //err := row.Scan(&user.id, &user.name, &user.display_name, &user.email, &user.password, &user.salt)
    if err != nil {
       session := getSession(w, r)
       delete(session.Values, "user_id")
       session.Save(r, w)
       render(w, r, http.StatusUnauthorized, "login.html", nil)
       return 
-    }
-    session := getSession(w, r)
-    session.Values["user_id"] = user.id
-    session.Save(r, w)
+   }
+   // (password string, salt string, hash string) 
+   //if !checkHashFromPassword(passwd, user.salt, user.password) {
+   //   session := getSession(w, r)
+   //   delete(session.Values, "user_id")
+   //   session.Save(r, w)
+   //   render(w, r, http.StatusUnauthorized, "login.html", nil)
+   //   return
+   //}
+   session := getSession(w, r)
+   session.Values["user_id"] = user.id
+   session.Save(r, w)
 }
 
 func authenticated(w http.ResponseWriter, r *http.Request) bool {
@@ -108,7 +125,57 @@ func GetLogout(w http.ResponseWriter, r *http.Request) {
    http.Redirect(w, r, "/login", http.StatusFound)
 }
 
-func GetIndex(w http.ResponseWriter, r *http.Request){
+func GetRegister(w http.ResponseWriter, r *http.Request) {
+   render(w, r, http.StatusOK, "register.html", nil)
+}
+
+func PostRegister(w http.ResponseWriter, r *http.Request){
+   name := r.FormValue("name")
+   display_name := r.FormValue("display_name")
+   email := r.FormValue("email")
+   password := r.FormValue("password")
+   if name == "" || password == "" || email == "" || display_name == "" {
+      http.Error(w, http.StatusText(http.StatusBadRequest), 400)
+      return
+   }
+   userID := register(name, display_name, email ,password)
+   session := getSession(w, r)
+   session.Values["user_id"] = userID
+   session.Save(r, w)
+   http.Redirect(w, r, "/", http.StatusFound)
+}
+
+func register (name string, display_name string, email string, pass string) int64 {
+   password, salt := createHashFromPassword(pass)
+   reg, err := db.Exec(`INSERT INTO users (name, display_name, salt, password, email) VALUES (?, ?, ?, ?, ?)`, name, display_name, salt, password, email)
+   if err != nil {
+      panic(err)
+   }
+   lastInsertID, _ := reg.LastInsertId()
+   return lastInsertID
+}
+
+func createHashFromPassword(password string) (string, string) {
+   bass := make([]byte, 14)
+   _, err := io.ReadFull(rand.Reader, bass)
+   if err != nil {
+      fmt.Println("error:", err)
+   }
+   salt := base64.StdEncoding.EncodeToString(bass)
+   converted, _ := scrypt.Key([]byte(password), []byte(salt), 16384, 8, 1, 16)
+   return hex.EncodeToString(converted[:]), salt
+}
+
+func checkHashFromPassword(password string, salt string, hash string) bool {
+   converted, _ := scrypt.Key([]byte(password), []byte(salt), 16384, 8, 1, 16)
+   tmpHash := hex.EncodeToString(converted[:])
+   if tmpHash == hash {
+      return true
+   }
+   return false
+}
+
+func GetIndex(w http.ResponseWriter, r *http.Request) {
    if !authenticated(w, r) {
       return
    }
@@ -135,7 +202,11 @@ func main(){
    l.Methods("GET").HandlerFunc(GetLogin)
    l.Methods("POST").HandlerFunc(PostLogin)
    r.Path("/logout").Methods("GET").HandlerFunc(GetLogout)
- 
+   
+   reg := r.Path("/register").Subrouter()
+   reg.Methods("GET").HandlerFunc(GetRegister)
+   reg.Methods("POST").HandlerFunc(PostRegister)
+
    r.HandleFunc("/", GetIndex).Methods("GET")
 
    http.ListenAndServe(":8080", r)
