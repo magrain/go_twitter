@@ -1,11 +1,12 @@
-package main
-
+package main 
 import(
   "github.com/gorilla/mux"
   "github.com/gorilla/sessions"
+  "github.com/gorilla/context"
    "net/http"
    "html/template"
    "path"
+   "os"
    "strconv"
    "fmt"
    "database/sql"
@@ -48,6 +49,39 @@ func authenticate(w http.ResponseWriter, r *http.Request, email, passwd string) 
     session.Save(r, w)
 }
 
+func authenticated(w http.ResponseWriter, r *http.Request) bool {
+   user := getCurrentUser(w, r)
+   if user == nil {
+      http.Redirect(w, r, "/login", http.StatusFound)
+      return false
+   }
+   return true
+}
+
+func getCurrentUser(w http.ResponseWriter, r *http.Request) *User {
+   u := context.Get(r, "user")
+   if u != nil {	
+      user := u.(User)
+         return &user
+   }
+   session := getSession(w, r)
+   userID, ok := session.Values["user_id"]
+   if !ok || userID == nil {
+      return nil
+   }
+   row := db.QueryRow(`SELECT id, name, display_name, email FROM users WHERE id=?`, userID)
+   user := User{}
+   err := row.Scan(&user.id, &user.name, &user.display_name, &user.email)
+   if err == sql.ErrNoRows {
+      session := getSession(w, r)
+      delete(session.Values, "user_id")
+      session.Save(r, w)
+      render(w, r, http.StatusUnauthorized, "login.html", nil)
+      return nil
+   }
+   context.Set(r, "user", user)
+   return &user
+}
 func render(w http.ResponseWriter, r *http.Request, status int, file string, data interface{}){
    t := template.Must(template.New(file).ParseFiles(getTemplatePath(file)))
    w.WriteHeader(status)
@@ -66,7 +100,18 @@ func PostLogin(w http.ResponseWriter, r *http.Request) {
    http.Redirect(w, r, "/", http.StatusSeeOther)
 }
 
+func GetLogout(w http.ResponseWriter, r *http.Request) {
+   session := getSession(w, r)
+   delete(session.Values, "user_id")
+   session.Options = &sessions.Options{MaxAge: -1}
+   session.Save(r, w)
+   http.Redirect(w, r, "/login", http.StatusFound)
+}
+
 func GetIndex(w http.ResponseWriter, r *http.Request){
+   if !authenticated(w, r) {
+      return
+   }
    render(w, r, http.StatusOK, "timeline.html", nil)
 }
 
@@ -89,7 +134,8 @@ func main(){
    l := r.Path("/login").Subrouter()
    l.Methods("GET").HandlerFunc(GetLogin)
    l.Methods("POST").HandlerFunc(PostLogin)
-
+   r.Path("/logout").Methods("GET").HandlerFunc(GetLogout)
+ 
    r.HandleFunc("/", GetIndex).Methods("GET")
 
    http.ListenAndServe(":8080", r)
