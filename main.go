@@ -113,7 +113,6 @@ func GetLogin(w http.ResponseWriter, r *http.Request){
 func PostLogin(w http.ResponseWriter, r *http.Request) {
    email := r.FormValue("email")
    passwd := r.FormValue("password")
-   fmt.Println(email)
    authenticate(w, r, email, passwd)
    http.Redirect(w, r, "/", http.StatusSeeOther)
 }
@@ -160,7 +159,7 @@ func createHashFromPassword(password string) (string, string) {
    bass := make([]byte, 14)
    _, err := io.ReadFull(rand.Reader, bass)
    if err != nil {
-      fmt.Println("error:", err)
+      panic(err)
    }
    salt := base64.StdEncoding.EncodeToString(bass)
    converted, _ := scrypt.Key([]byte(password), []byte(salt), 16384, 8, 1, 16)
@@ -174,6 +173,25 @@ func checkHashFromPassword(password string, salt string, hash string) bool {
       return true
    }
    return false
+}
+
+func PostTweet(w http.ResponseWriter, r *http.Request) {
+   if !authenticated(w, r) {
+      return
+   }
+   user := getCurrentUser(w, r)
+   //TODO: metion をユーザーに分かりやすくする。現状 user_id を手打ち
+   text := r.FormValue("text")
+   mentionStr := r.FormValue("mention")
+   mention := 0
+   if mentionStr != "" {
+      mention, _ = strconv.Atoi(mentionStr)
+   }
+   _ , err := db.Exec(`INSERT INTO tweets (user_id, text, mention) VALUES (?, ?, ?)`, user.id, text, mention)
+   if err != nil {
+      panic(err)
+   }
+   http.Redirect(w, r, "/", http.StatusFound)
 }
 
 func GetIndex(w http.ResponseWriter, r *http.Request) {
@@ -207,6 +225,10 @@ func main(){
    reg := r.Path("/register").Subrouter()
    reg.Methods("GET").HandlerFunc(GetRegister)
    reg.Methods("POST").HandlerFunc(PostRegister)
+
+   t := r.Path("/tweet").Subrouter()
+   //t.Methods("GET").HandlerFunc(GetTweet)
+   t.Methods("Post").HandlerFunc(PostTweet)
 
    r.HandleFunc("/", GetIndex).Methods("GET")
 
