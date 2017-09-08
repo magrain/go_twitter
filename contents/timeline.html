@@ -17,7 +17,9 @@
     </div>
     </form>
     <div>
-      Tweetがありません(TLここ)
+      {{range .}}
+         <p>{{.Tweets[].user_id}} : <a href="./tweets/"{{.Tweets[].id}}"">{{.Tweets[].text}}</a></p>
+      {{end}}
     </div>
   </body>
 </html>
