@@ -1,8 +1,7 @@
 <!DOCTYPE html>
 <html>
   <head>
-    <meta charset="utf-8">
-    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta http-equiv="Content-Type" content="text/html" charset="utf-8">
     <title>タイムライン</title>
     <link rel="stylesheet" href="">
   </head>
@@ -15,9 +14,11 @@
         <input class="btn btn-default" type="submit" name="Tweet" value="Tweet" />
       </p>
     </div>
-    </form>
     <div>
-      Tweetがありません(TLここ)
+      {{range .Tweets}}
+         <p>{{ .User_id }} : <a href="/tweet/{{.Id}}">{{ .Text }}</a></p>
+      {{end}}
     </div>
+  </form>
   </body>
 </html>
