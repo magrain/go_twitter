@@ -7,7 +7,7 @@ import(
    "net/http"
    "html/template"
    "path"
-   "os"
+   //"os"
    "strconv"
    "fmt"
    "crypto/rand"
@@ -31,7 +31,7 @@ type User struct {
 type Tweet struct {
    id int
    user_id int
-   create_at *time.Time
+   created_at *time.Time
    text string
    mention int
 }
@@ -206,17 +206,21 @@ func GetIndex(w http.ResponseWriter, r *http.Request) {
    if !authenticated(w, r) {
       return
    }
-   rows, qerr := db.Query("SELECT * FROM 'tweets' order by create_at desc　limit 10")
-   defer rows.Close()
+   rows, qerr := db.Query("SELECT * FROM 'tweets' order by created_at desc　limit 10")
    if qerr != nil {
      //log.Fatal("query error: %v", qerr)
    }
    tweets := make([]Tweet, 0, 10)
    for rows.Next() {
       t := Tweet{}
-      err := rows.Scan(&t.id, &t.user_id, &t.create_at, &t.text, &t.mention)
+      err := rows.Scan(&t.id, &t.user_id, &t.created_at, &t.text, &t.mention)
+      if err != nil {
+        //log.Fatal("query error: %v", qerr)
+      }
       tweets = append(tweets,t)
    }
+   defer rows.Close()
+   //TODO: nil に入れる
    render(w, r, http.StatusOK, "timeline.html", nil)
 }
 
@@ -224,12 +228,14 @@ func main(){
    host := "localhost"
    dbPortStr := "3306"
    dbPort , err := strconv.Atoi(dbPortStr)
-   user := "root"
+   //user := "root"
+   user := "tester"
    dbName := "gotwitter"
-   password :=  os.Getenv("DB_PASSWORD")
+   //password :=  os.Getenv("DB_PASSWORD")
+   password := "asdf"
    db, err = sql.Open("mysql", fmt.Sprintf("%s:%s@tcp(%s:%d)/%s?loc=Local&parseTime=true", user, password, host, dbPort, dbName,))
    if err != nil {
-      //log.Fatalf("Failed to connect to DB: %s.", err.Error())
+      panic(err)
    }
    defer db.Close()
 
