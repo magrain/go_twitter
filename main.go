@@ -186,6 +186,7 @@ func checkHashFromPassword(password string, salt string, hash string) bool {
 
 func PostTweet(w http.ResponseWriter, r *http.Request) {
    if !authenticated(w, r) {
+      http.Redirect(w, r, "/", http.StatusFound)
       return
    }
    user := getCurrentUser(w, r)
@@ -252,6 +253,24 @@ func DeleteTweetId(w http.ResponseWriter, r *http.Request){
    http.Redirect(w, r, "/", http.StatusFound)
 }
 
+func GetProfileId(w http.ResponseWriter, r *http.Request){
+   if !authenticated(w, r) {
+      return
+   }
+   profileId, _ := strconv.Atoi(mux.Vars(r)["profile_id"])
+   user := User{}
+   row := db.QueryRow(`select id, name, display_name from users where id=?`, profileId)
+   test := row.Scan(&user.id, &user.name, &user.display_name)
+   if test != nil {
+      panic(test)
+   }
+   if user.id != profileId {
+      render (w, r, http.StatusOK, "profileAnother.html", struct {User User} { user })
+      return
+   }
+   render(w, r, http.StatusOK, "profile.html", struct {User User} { user })
+}
+
 func GetIndex(w http.ResponseWriter, r *http.Request) {
    if !authenticated(w, r) {
       return
@@ -308,6 +327,7 @@ func main(){
    r.HandleFunc("/tweet/{tweet_id}", PostTweetId).Methods("POST")
    r.HandleFunc("/tweet/{tweet_id}/delete", DeleteTweetId).Methods("POST")
    
+   r.HandleFunc("/profile/{profile_id}", GetProfileId).Methods("GET")
    r.HandleFunc("/", GetIndex).Methods("GET")
 
    http.ListenAndServe(":8080", r)
