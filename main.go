@@ -211,11 +211,11 @@ func GetTweet(w http.ResponseWriter, r *http.Request){
    tweetId := mux.Vars(r)["tweet_id"]
    t := Tweet{}
    row := db.QueryRow(`select id, user_id, created_at, text, mention from tweets where id=?`, tweetId)
-   test := row.Scan(&t.id, &t.user_id, &t.created_at, &t.text, &t.mention)
+   test := row.Scan(&t.Id, &t.User_id, &t.Created_at, &t.Text, &t.Mention)
    if test != nil {
       panic(test)
    }
-   if t.user_id != user.id {
+   if t.User_id != user.id {
       http.Redirect(w, r, "/", http.StatusFound)
       return
    }
