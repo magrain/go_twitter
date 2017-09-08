@@ -210,25 +210,16 @@ func GetTweet(w http.ResponseWriter, r *http.Request){
    user := getCurrentUser(w, r)
    tweetId := mux.Vars(r)["tweet_id"]
    t := Tweet{}
-   row, err := db.Query(`select id, user_id, created_at, text, mention from tweets where id=?`, tweetId)
-   if err != nil || row == nil {
-      http.Redirect(w, r, "/", http.StatusFound)
-   }
-   fmt.Println(row)
-   //test := row.Scan(&tweet.id, &tweet.user_id, &tweet.created_at, &tweet.text, &tweet.mention)
+   row := db.QueryRow(`select id, user_id, created_at, text, mention from tweets where id=?`, tweetId)
    test := row.Scan(&t.id, &t.user_id, &t.created_at, &t.text, &t.mention)
-   fmt.Println(test)
-   //if test != nil {
-      //panic(err)
-   //}
-   if t.user_id != user.id {
-      //http.Redirect(w, r, "/", http.StatusFound)
-      //return
-      fmt.Println(user.id)
-      fmt.Println(t.user_id)
-      fmt.Println(t.text)
+   if test != nil {
+      panic(test)
    }
-   render(w, r, http.StatusOK, "tweet.html", nil)
+   if t.user_id != user.id {
+      http.Redirect(w, r, "/", http.StatusFound)
+      return
+   }
+   render(w, r, http.StatusOK, "tweet.html", struct {Tweet Tweet} { t })
 }
 
 func GetIndex(w http.ResponseWriter, r *http.Request) {
