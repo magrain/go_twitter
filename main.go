@@ -220,17 +220,20 @@ func GetIndex(w http.ResponseWriter, r *http.Request) {
       tweets = append(tweets,t)
    }
    defer rows.Close()
-   //TODO: nil に入れる
-   render(w, r, http.StatusOK, "timeline.html", nil)
+   render(w, r, http.StatusOK, "timeline.html", struct{Tweets []Tweet}{tweets})
+   //render(w, r, http.StatusOK, "timeline.html", nil)
 }
+
 
 func main(){
    host := "localhost"
    dbPortStr := "3306"
    dbPort , err := strconv.Atoi(dbPortStr)
    user := "root"
+   //user := "tester"
    dbName := "gotwitter"
    password :=  os.Getenv("DB_PASSWORD")
+   //password := "asdf"
    db, err = sql.Open("mysql", fmt.Sprintf("%s:%s@tcp(%s:%d)/%s?loc=Local&parseTime=true", user, password, host, dbPort, dbName,))
    if err != nil {
       panic(err)
