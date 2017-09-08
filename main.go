@@ -29,11 +29,11 @@ type User struct {
    salt string
 }
 type Tweet struct {
-   id int
-   user_id int
-   created_at *time.Time
-   text string
-   mention int
+   Id int
+   User_id int
+   Created_at *time.Time
+   Text string
+   Mention int
 }
 
 var store *sessions.CookieStore
@@ -213,16 +213,17 @@ func GetIndex(w http.ResponseWriter, r *http.Request) {
    tweets := make([]Tweet, 0, 10)
    for rows.Next() {
       t := Tweet{}
-      err := rows.Scan(&t.id, &t.user_id, &t.created_at, &t.text, &t.mention)
+      err := rows.Scan(&t.Id, &t.User_id, &t.Created_at, &t.Text, &t.Memtion)
       if err != nil {
-        //log.Fatal("query error: %v", qerr)
+         //fmt.Printf(t)
       }
       tweets = append(tweets,t)
    }
    defer rows.Close()
-   //TODO: nil に入れる
-   render(w, r, http.StatusOK, "timeline.html", nil)
+   render(w, r, http.StatusOK, "timeline.html", struct{Tweets []Tweet}{tweets})
+   //render(w, r, http.StatusOK, "timeline.html", nil)
 }
+
 
 func main(){
    host := "localhost"
