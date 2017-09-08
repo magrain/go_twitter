@@ -213,7 +213,7 @@ func GetIndex(w http.ResponseWriter, r *http.Request) {
    tweets := make([]Tweet, 0, 10)
    for rows.Next() {
       t := Tweet{}
-      err := rows.Scan(&t.Id, &t.User_id, &t.Created_at, &t.Text, &t.Memtion)
+      err := rows.Scan(&t.Id, &t.User_id, &t.Created_at, &t.Text, &t.Mention)
       if err != nil {
          //fmt.Printf(t)
       }
