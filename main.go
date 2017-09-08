@@ -28,6 +28,7 @@ type User struct {
    password string
    salt string
 }
+
 type Tweet struct {
    id int
    user_id int
@@ -202,11 +203,39 @@ func PostTweet(w http.ResponseWriter, r *http.Request) {
    http.Redirect(w, r, "/", http.StatusFound)
 }
 
+func GetTweet(w http.ResponseWriter, r *http.Request){
+   if !authenticated(w, r) {
+      return
+   }
+   user := getCurrentUser(w, r)
+   tweetId := mux.Vars(r)["tweet_id"]
+   t := Tweet{}
+   row, err := db.Query(`select id, user_id, created_at, text, mention from tweets where id=?`, tweetId)
+   if err != nil || row == nil {
+      http.Redirect(w, r, "/", http.StatusFound)
+   }
+   fmt.Println(row)
+   //test := row.Scan(&tweet.id, &tweet.user_id, &tweet.created_at, &tweet.text, &tweet.mention)
+   test := row.Scan(&t.id, &t.user_id, &t.created_at, &t.text, &t.mention)
+   fmt.Println(test)
+   //if test != nil {
+      //panic(err)
+   //}
+   if t.user_id != user.id {
+      //http.Redirect(w, r, "/", http.StatusFound)
+      //return
+      fmt.Println(user.id)
+      fmt.Println(t.user_id)
+      fmt.Println(t.text)
+   }
+   render(w, r, http.StatusOK, "tweet.html", nil)
+}
+
 func GetIndex(w http.ResponseWriter, r *http.Request) {
    if !authenticated(w, r) {
       return
    }
-   rows, qerr := db.Query(`SELECT * FROM tweets order by created_at desc　limit 10`)
+   rows, qerr := db.Query(`SELECT * FROM tweets order by created_at desc limit 10`)
    if qerr != nil {
      //log.Fatal("query error: %v", qerr)
    }
@@ -253,6 +282,8 @@ func main(){
    //t.Methods("GET").HandlerFunc(GetTweet)
    t.Methods("Post").HandlerFunc(PostTweet)
 
+   r.HandleFunc("/tweet/{tweet_id}", GetTweet).Methods("GET")
+ 
    r.HandleFunc("/", GetIndex).Methods("GET")
 
    http.ListenAndServe(":8080", r)
