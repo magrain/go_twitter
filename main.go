@@ -206,7 +206,7 @@ func GetIndex(w http.ResponseWriter, r *http.Request) {
    if !authenticated(w, r) {
       return
    }
-   rows, qerr := db.Query(`SELECT * FROM tweets order by created_at desc　limit 10`)
+   rows, qerr := db.Query(`SELECT * FROM tweets order by created_at desc limit 10`)
    if qerr != nil {
      //log.Fatal("query error: %v", qerr)
    }
