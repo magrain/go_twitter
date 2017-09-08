@@ -7,7 +7,7 @@ import(
    "net/http"
    "html/template"
    "path"
-   //"os"
+   "os"
    "strconv"
    "fmt"
    "crypto/rand"
@@ -228,11 +228,9 @@ func main(){
    host := "localhost"
    dbPortStr := "3306"
    dbPort , err := strconv.Atoi(dbPortStr)
-   //user := "root"
-   user := "tester"
+   user := "root"
    dbName := "gotwitter"
-   //password :=  os.Getenv("DB_PASSWORD")
-   password := "asdf"
+   password :=  os.Getenv("DB_PASSWORD")
    db, err = sql.Open("mysql", fmt.Sprintf("%s:%s@tcp(%s:%d)/%s?loc=Local&parseTime=true", user, password, host, dbPort, dbName,))
    if err != nil {
       panic(err)
