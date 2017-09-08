@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <title>tweet</title>
+    <link rel="stylesheet" href="">
+  </head>
+  <body> 
+    <div>{{.Tweet}}</div>
+    <form method="POST" action="/tweet/{{ .Tweet.Id }}">
+    <div>
+      <p>
+        <label>変更できます!!：<input type="text" name="text"></label>
+        <label>mention<input type="text" name="mention"></label>
+        <input type="submit" name="Tweet" value="Update" />
+      </p>
+    </div>
+    </form>
+    <form method="POST" action="/tweet/{{ .Tweet.Id }}/delete">
+    	<div>
+                <input type="hidden" name="_method" value="DELETE">
+    		<input type="submit" name="Tweet" value="Delete" />
+    	</div>
+    </form>
+  </body>
+</html>
+

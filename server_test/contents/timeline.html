@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta http-equiv="Content-Type" content="text/html" charset="utf-8">
+    <title>タイムライン</title>
+    <link rel="stylesheet" href="">
+  </head>
+  <body>
+    <form method="POST" action="/tweet">
+    <div>
+      <p>
+        <label>今何してる?：<input type="text" name="text"></label>
+        <label>mention<input type="text" name="mention"></label>
+        <input class="btn btn-default" type="submit" name="Tweet" value="Tweet" />
+      </p>
+    </div>
+    <div>
+      {{range .Tweet_list}}
+         <p>{{ .Display_name }} : <a href="/tweet/{{.Id}}">{{ .Text }}</a></p>
+      {{end}}
+    </div>
+  </form>
+  </body>
+</html>
