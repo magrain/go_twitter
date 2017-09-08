@@ -1,4 +1,4 @@
-package main 
+package main
 
 import(
   "github.com/gorilla/mux"
@@ -14,6 +14,7 @@ import(
    "encoding/hex"
    "encoding/base64"
    "io"
+   "time"
    "golang.org/x/crypto/scrypt"
    "database/sql"
    _ "github.com/go-sql-driver/mysql"
@@ -26,6 +27,13 @@ type User struct {
    email string
    password string
    salt string
+}
+type Tweet struct {
+   id int
+   user_id int
+   create_at *time.Time
+   text string
+   mention int
 }
 
 var store *sessions.CookieStore
@@ -41,7 +49,7 @@ func getSession(w http.ResponseWriter, r *http.Request) *sessions.Session {
 }
 
 func authenticate(w http.ResponseWriter, r *http.Request, email, passwd string) {
-   //query := `SELECT id, name, display_name, email FROM users where email=? AND password=?` 
+   //query := `SELECT id, name, display_name, email FROM users where email=? AND password=?`
    //row := db.QueryRow(`SELECT id, name, display_name, email FROM users where email=? AND password=?`, email, passwd)
    row := db.QueryRow(`SELECT id, name, display_name, email, password, salt FROM users where email=?`, email)
    user := User{}
@@ -52,9 +60,9 @@ func authenticate(w http.ResponseWriter, r *http.Request, email, passwd string) 
       delete(session.Values, "user_id")
       session.Save(r, w)
       render(w, r, http.StatusUnauthorized, "login.html", nil)
-      return 
+      return
    }
-   // (password string, salt string, hash string) 
+   // (password string, salt string, hash string)
    if !checkHashFromPassword(passwd, user.salt, user.password) {
       session := getSession(w, r)
       delete(session.Values, "user_id")
@@ -78,7 +86,7 @@ func authenticated(w http.ResponseWriter, r *http.Request) bool {
 
 func getCurrentUser(w http.ResponseWriter, r *http.Request) *User {
    u := context.Get(r, "user")
-   if u != nil {	
+   if u != nil {
       user := u.(User)
          return &user
    }
@@ -198,6 +206,17 @@ func GetIndex(w http.ResponseWriter, r *http.Request) {
    if !authenticated(w, r) {
       return
    }
+   rows, qerr := db.Query("SELECT * FROM 'tweets' order by create_at desc　limit 10")
+   defer rows.Close()
+   if qerr != nil {
+     //log.Fatal("query error: %v", qerr)
+   }
+   tweets := make([]Tweet, 0, 10)
+   for rows.Next() {
+      t := Tweet{}
+      err := rows.Scan(&t.id, &t.user_id, &t.create_at, &t.text, &t.mention)
+      tweets = append(tweets,t)
+   }
    render(w, r, http.StatusOK, "timeline.html", nil)
 }
 
@@ -209,19 +228,19 @@ func main(){
    dbName := "gotwitter"
    password :=  os.Getenv("DB_PASSWORD")
    db, err = sql.Open("mysql", fmt.Sprintf("%s:%s@tcp(%s:%d)/%s?loc=Local&parseTime=true", user, password, host, dbPort, dbName,))
-   if err != nil { 
+   if err != nil {
       //log.Fatalf("Failed to connect to DB: %s.", err.Error())
    }
    defer db.Close()
 
    secret := "hogehoge"
-   store = sessions.NewCookieStore([]byte(secret)) 
+   store = sessions.NewCookieStore([]byte(secret))
    r := mux.NewRouter()
    l := r.Path("/login").Subrouter()
    l.Methods("GET").HandlerFunc(GetLogin)
    l.Methods("POST").HandlerFunc(PostLogin)
    r.Path("/logout").Methods("GET").HandlerFunc(GetLogout)
-   
+
    reg := r.Path("/register").Subrouter()
    reg.Methods("GET").HandlerFunc(GetRegister)
    reg.Methods("POST").HandlerFunc(PostRegister)
