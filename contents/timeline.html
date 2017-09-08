@@ -7,12 +7,15 @@
     <link rel="stylesheet" href="">
   </head>
   <body>
+    <form method="POST" action="/tweet">
     <div>
       <p>
-        <label>今何してる?：<input type="text" name="tweet"></label>
-        <button type="button" name="btn" value="push">Tweet</button>
+        <label>今何してる?：<input type="text" name="text"></label>
+        <label>mention<input type="text" name="mention"></label>
+        <input class="btn btn-default" type="submit" name="Tweet" value="Tweet" />
       </p>
     </div>
+    </form>
     <div>
       Tweetがありません(TLここ)
     </div>
