@@ -7,7 +7,7 @@ import(
    "net/http"
    "html/template"
    "path"
-   //"os"
+   "os"
    "strconv"
    "fmt"
    "crypto/rand"
@@ -29,7 +29,7 @@ type User struct {
    salt string
 }
 type Tweet struct {
-   ID int
+   Id int
    User_id int
    Created_at *time.Time
    Text string
@@ -213,7 +213,7 @@ func GetIndex(w http.ResponseWriter, r *http.Request) {
    tweets := make([]Tweet, 0, 10)
    for rows.Next() {
       t := Tweet{}
-      err := rows.Scan(&t.ID, &t.User_id, &t.Created_at, &t.Text, &t.Memtion)
+      err := rows.Scan(&t.Id, &t.User_id, &t.Created_at, &t.Text, &t.Memtion)
       if err != nil {
          //fmt.Printf(t)
       }
@@ -229,11 +229,9 @@ func main(){
    host := "localhost"
    dbPortStr := "3306"
    dbPort , err := strconv.Atoi(dbPortStr)
-   //user := "root"
-   user := "tester"
+   user := "root"
    dbName := "gotwitter"
-   //password :=  os.Getenv("DB_PASSWORD")
-   password := "asdf"
+   password :=  os.Getenv("DB_PASSWORD")
    db, err = sql.Open("mysql", fmt.Sprintf("%s:%s@tcp(%s:%d)/%s?loc=Local&parseTime=true", user, password, host, dbPort, dbName,))
    if err != nil {
       panic(err)
