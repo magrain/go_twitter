@@ -16,7 +16,7 @@
     </div>
     <div>
       {{range .Tweets}}
-         <p>{{ .User_id }} : <a href="/tweet/{{.Id}}">{{ .Text }}</a></p>
+         <p><a href="/profile/{{.User_id}}">{{ .User_id }} : <a href="/tweet/{{.Id}}">{{ .Text }}</a></p>
       {{end}}
     </div>
   </form>
