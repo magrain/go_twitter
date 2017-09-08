@@ -203,7 +203,7 @@ func PostTweet(w http.ResponseWriter, r *http.Request) {
    http.Redirect(w, r, "/", http.StatusFound)
 }
 
-func GetTweet(w http.ResponseWriter, r *http.Request){
+func GetTweetId(w http.ResponseWriter, r *http.Request){
    if !authenticated(w, r) {
       return
    }
@@ -216,10 +216,40 @@ func GetTweet(w http.ResponseWriter, r *http.Request){
       panic(test)
    }
    if t.User_id != user.id {
-      http.Redirect(w, r, "/", http.StatusFound)
+      render (w, r, http.StatusOK, "tweetAnother.html", struct {Tweet Tweet} { t })
       return
    }
    render(w, r, http.StatusOK, "tweet.html", struct {Tweet Tweet} { t })
+}
+
+func PostTweetId(w http.ResponseWriter, r *http.Request){
+   if !authenticated(w, r) {
+      return
+   }
+   tweetId := mux.Vars(r)["tweet_id"]
+   text := r.FormValue("text")
+   mentionStr := r.FormValue("mention")
+   mention := 0
+   if mentionStr != "" {
+      mention, _ = strconv.Atoi(mentionStr)
+   }
+   _ , err := db.Exec(`UPDATE tweets SET text=?, mention=? where id=?`, text, mention, tweetId)
+   if err != nil {
+      panic(err)
+   }
+   http.Redirect(w, r, "/", http.StatusFound)
+}
+
+func DeleteTweetId(w http.ResponseWriter, r *http.Request){
+   if !authenticated(w, r) {
+      return
+   }
+   tweetId := mux.Vars(r)["tweet_id"]
+   _ , err := db.Exec(`DELETE FROM tweets where id=?`, tweetId)
+   if err != nil {
+      panic(err)
+   }
+   http.Redirect(w, r, "/", http.StatusFound)
 }
 
 func GetIndex(w http.ResponseWriter, r *http.Request) {
@@ -274,8 +304,10 @@ func main(){
    //t.Methods("GET").HandlerFunc(GetTweet)
    t.Methods("Post").HandlerFunc(PostTweet)
 
-   r.HandleFunc("/tweet/{tweet_id}", GetTweet).Methods("GET")
- 
+   r.HandleFunc("/tweet/{tweet_id}", GetTweetId).Methods("GET")
+   r.HandleFunc("/tweet/{tweet_id}", PostTweetId).Methods("POST")
+   r.HandleFunc("/tweet/{tweet_id}/delete", DeleteTweetId).Methods("POST")
+   
    r.HandleFunc("/", GetIndex).Methods("GET")
 
    http.ListenAndServe(":8080", r)
